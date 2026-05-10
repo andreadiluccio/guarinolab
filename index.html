@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sistema Guarino — Infografica interattiva</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display&display=swap');
+
+  :root {
+    --blue: #1a4f8a;
+    --blue-light: #2e75b6;
+    --blue-pale: #e8f2fb;
+    --teal: #0f7a5a;
+    --teal-light: #1db87e;
+    --teal-pale: #e0f5ed;
+    --amber: #b06800;
+    --amber-light: #e88c00;
+    --amber-pale: #fef3dc;
+    --coral: #b03020;
+    --coral-light: #d84a30;
+    --coral-pale: #fdf0ee;
+    --purple: #4a3ab0;
+    --purple-light: #6a5ad0;
+    --purple-pale: #f0eeff;
+    --green: #2d6e18;
+    --green-pale: #eaf5e0;
+    --gray-50: #f8f8f6;
+    --gray-100: #ececea;
+    --gray-200: #d4d4d0;
+    --gray-500: #6b6b68;
+    --gray-800: #2a2a28;
+    --shadow-sm: 0 1px 4px rgba(0,0,0,.08), 0 0 0 0.5px rgba(0,0,0,.06);
+    --shadow-md: 0 4px 20px rgba(0,0,0,.12), 0 0 0 0.5px rgba(0,0,0,.06);
+    --shadow-lg: 0 12px 40px rgba(0,0,0,.18), 0 0 0 0.5px rgba(0,0,0,.06);
+    --radius: 12px;
+    --radius-sm: 8px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: #f2f1ee;
+    color: var(--gray-800);
+    min-height: 100vh;
+    padding: 32px 16px 60px;
+  }
+
+  h1, h2, h3 { font-family: 'DM Serif Display', serif; font-weight: 400; }
+
+  .page-header {
+    text-align: center;
+    margin-bottom: 28px;
+  }
+  .page-header h1 {
+    font-size: clamp(22px, 4vw, 36px);
+    color: var(--blue);
+    line-height: 1.2;
+  }
+  .page-header p {
+    font-size: 15px;
+    color: var(--gray-500);
+    margin-top: 8px;
+  }
+
+  .infografica-wrap {
+    max-width: 900px;
+    margin: 0 auto;
+    position: relative;
+  }
+
+  .img-frame {
+    position: relative;
+    border-radius: 16px;
+    overflow: visible;
+    box-shadow: var(--shadow-md);
+  }
+
+  .img-frame img {
+    width: 100%;
+    display: block;
+    border-radius: 16px;
+  }
+
+  /* ── HOTSPOT ── */
+  .hotspot {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    cursor: pointer;
+    z-index: 20;
+  }
+  .hs-dot {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 600; color: #fff;
+    box-shadow: 0 2px 8px rgba(0,0,0,.25);
+    transition: transform .18s, box-shadow .18s;
+    position: relative;
+  }
+  .hs-dot::after {
+    content: '';
+    position: absolute;
+    inset: -5px;
+    border-radius: 50%;
+    border: 2px solid currentColor;
+    opacity: 0;
+    animation: ripple 2.2s ease-out infinite;
+  }
+  .hotspot:nth-child(2) .hs-dot::after { animation-delay: 0s; }
+  .hotspot:nth-child(3) .hs-dot::after { animation-delay: .28s; }
+  .hotspot:nth-child(4) .hs-dot::after { animation-delay: .56s; }
+  .hotspot:nth-child(5) .hs-dot::after { animation-delay: .84s; }
+  .hotspot:nth-child(6) .hs-dot::after { animation-delay: 1.12s; }
+  .hotspot:nth-child(7) .hs-dot::after { animation-delay: 1.40s; }
+  .hotspot:nth-child(8) .hs-dot::after { animation-delay: 1.68s; }
+  .hotspot:nth-child(9) .hs-dot::after { animation-delay: 1.96s; }
+  @keyframes ripple {
+    0%   { opacity: .6; transform: scale(1); }
+    70%  { opacity: 0;  transform: scale(1.8); }
+    100% { opacity: 0;  transform: scale(1.8); }
+  }
+  .hotspot:hover .hs-dot {
+    transform: scale(1.18);
+    box-shadow: 0 4px 16px rgba(0,0,0,.3);
+  }
+  .hotspot.active .hs-dot {
+    transform: scale(1.25);
+  }
+
+  /* ── CALLOUT PANEL ── */
+  .callout {
+    display: none;
+    max-width: 900px;
+    margin: 20px auto 0;
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: var(--shadow-lg);
+    overflow: hidden;
+    animation: slideUp .28s cubic-bezier(.22,1,.36,1);
+  }
+  .callout.open { display: block; }
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .callout-header {
+    padding: 20px 24px 16px;
+    display: flex; align-items: center; gap: 14px;
+    border-bottom: 1px solid var(--gray-100);
+  }
+  .callout-icon {
+    width: 44px; height: 44px; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px; flex-shrink: 0;
+  }
+  .callout-title { font-size: 18px; line-height: 1.2; color: var(--gray-800); }
+  .callout-subtitle { font-size: 13px; color: var(--gray-500); margin-top: 3px; }
+  .close-btn {
+    margin-left: auto; cursor: pointer;
+    width: 30px; height: 30px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--gray-100); color: var(--gray-500);
+    font-size: 16px; flex-shrink: 0; border: none;
+    transition: background .15s;
+  }
+  .close-btn:hover { background: var(--gray-200); }
+
+  .callout-body {
+    padding: 20px 24px 24px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+  @media (max-width: 640px) {
+    .callout-body { grid-template-columns: 1fr; }
+  }
+
+  /* ── COMIC PANELS ── */
+  .comic-section { }
+  .comic-label {
+    font-size: 11px; text-transform: uppercase; letter-spacing: .08em;
+    color: var(--gray-500); margin-bottom: 10px; font-weight: 500;
+  }
+  .comic-strip {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+    margin-bottom: 14px;
+  }
+  .comic-panel {
+    border-radius: 10px; overflow: hidden;
+    border: 1px solid var(--gray-100);
+    background: var(--gray-50);
+  }
+  .comic-panel svg { width: 100%; display: block; }
+
+  /* ── DETAIL TEXT ── */
+  .detail-section {  }
+  .detail-section h3 {
+    font-size: 15px; margin-bottom: 10px; color: var(--gray-800);
+    font-family: 'DM Sans', sans-serif; font-weight: 600;
+  }
+  .detail-steps { list-style: none; }
+  .detail-steps li {
+    display: flex; gap: 10px; margin-bottom: 10px;
+    font-size: 13.5px; line-height: 1.6; color: var(--gray-800);
+  }
+  .step-num {
+    width: 22px; height: 22px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 600; color: #fff;
+    flex-shrink: 0; margin-top: 1px;
+  }
+  .detail-note {
+    margin-top: 12px; padding: 10px 14px;
+    border-radius: 8px; font-size: 13px; line-height: 1.6;
+  }
+  .tag-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+  .tag {
+    font-size: 11px; font-weight: 500; padding: 3px 10px;
+    border-radius: 20px; border: 1px solid currentColor;
+  }
+  .scenario-tabs {
+    display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap;
+  }
+  .tab-btn {
+    font-size: 12px; padding: 5px 12px; border-radius: 20px;
+    border: 1px solid var(--gray-200); background: transparent;
+    color: var(--gray-500); cursor: pointer; transition: all .15s;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .tab-btn.on {
+    border-color: transparent; color: #fff;
+  }
+  .tab-btn:hover:not(.on) { background: var(--gray-100); }
+  .scenario { display: none; }
+  .scenario.on { display: block; }
+  .scenario-card {
+    border-radius: 10px; padding: 14px;
+    font-size: 13px; line-height: 1.7;
+    margin-bottom: 8px;
+  }
+  .match-row {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 12px; font-weight: 500; margin-bottom: 6px;
+  }
+  .badge {
+    display: inline-block; padding: 2px 8px; border-radius: 20px;
+    font-size: 11px; font-weight: 600;
+  }
+  .badge.ok  { background:#e0f5ed; color:#0f7a5a; }
+  .badge.err { background:#fdf0ee; color:#b03020; }
+  .badge.warn { background:#fef3dc; color:#b06800; }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <h1>Sistema integrato di gestione approvvigionamenti</h1>
+  <p>Centro Diagnostico Guarino &mdash; clicca su un numero per esplorare ogni modulo</p>
+</div>
+
+<div class="infografica-wrap">
+
+  <div class="img-frame">
+    <img src="ChatGPT_Image_10_mag_2026__06_48_14.png" alt="Infografica sistema Guarino">
+
+    <!-- HOTSPOT 01 ANAGRAFICHE -->
+    <div class="hotspot" style="left:14%;top:36%" id="h1" onclick="openPanel('p1')">
+      <div class="hs-dot" style="background:#1a4f8a;color:#fff">01</div>
+    </div>
+    <!-- HOTSPOT 02 RICHIESTE -->
+    <div class="hotspot" style="left:38%;top:36%" id="h2" onclick="openPanel('p2')">
+      <div class="hs-dot" style="background:#2e75b6;color:#fff">02</div>
+    </div>
+    <!-- HOTSPOT 03 ORDINI -->
+    <div class="hotspot" style="left:62%;top:36%" id="h3" onclick="openPanel('p3')">
+      <div class="hs-dot" style="background:#4a3ab0;color:#fff">03</div>
+    </div>
+    <!-- HOTSPOT 04 RICEZIONE -->
+    <div class="hotspot" style="left:86%;top:36%" id="h4" onclick="openPanel('p4')">
+      <div class="hs-dot" style="background:#b03020;color:#fff">04</div>
+    </div>
+    <!-- HOTSPOT 05 CICLO PASSIVO -->
+    <div class="hotspot" style="left:14%;top:67%" id="h5" onclick="openPanel('p5')">
+      <div class="hs-dot" style="background:#b06800;color:#fff">05</div>
+    </div>
+    <!-- HOTSPOT 06 DISTINTA BASE -->
+    <div class="hotspot" style="left:38%;top:67%" id="h6" onclick="openPanel('p6')">
+      <div class="hs-dot" style="background:#0f7a5a;color:#fff">06</div>
+    </div>
+    <!-- HOTSPOT 07 DASHBOARD -->
+    <div class="hotspot" style="left:62%;top:67%" id="h7" onclick="openPanel('p7')">
+      <div class="hs-dot" style="background:#185fa5;color:#fff">07</div>
+    </div>
+    <!-- HOTSPOT 08 AI -->
+    <div class="hotspot" style="left:86%;top:67%" id="h8" onclick="openPanel('p8')">
+      <div class="hs-dot" style="background:#534ab7;color:#fff">08</div>
+    </div>
+  </div><!-- /img-frame -->
+
+  <!-- ═══════════════════════════════════════════
+       PANEL 01 — ANAGRAFICHE
+  ═══════════════════════════════════════════ -->
+  <div class="callout" id="p1">
+    <div class="callout-header">
+      <div class="callout-icon" style="background:#e8f2fb;font-size:20px">&#128196;</div>
+      <div>
+        <div class="callout-title">01 &mdash; Anagrafiche</div>
+        <div class="callout-subtitle">Prodotti &middot; Fornitori &middot; Listini &middot; Offerte</div>
+      </div>
+      <button class="close-btn" onclick="closeAll()">&#x2715;</button>
+    </div>
+    <div class="callout-body">
+      <div class="comic-section">
+        <div class="comic-label">Come funziona</div>
+        <div class="comic-strip">
+          <div class="comic-panel">
+            <svg viewBox="0 0 100 80">
+              <rect width="100" height="80" fill="#e8f2fb"/>
+              <rect x="10" y="12" width="80" height="10" rx="3" fill="#2e75b6" opacity=".2"/>
+              <text x="50" y="19" text-anchor="middle" font-size="7" fill="#1a4f8a" font-weight="600" font-family="DM Sans,sans-serif">Catalogo prodotti</text>
+              <rect x="10" y="26" width="55" height="6" rx="2" fill="#2e75b6" opacity=".35"/>
+              <rect x="10" y="35" width="65" height="6" rx="2" fill="#2e75b6" opacity=".25"/>
+              <rect x="10" y="44" width="48" height="6" rx="2" fill="#2e75b6" opacity=".18"/>
+              <rect x="10" y="53" width="60" height="6" rx="2" fill="#2e75b6" opacity=".13"/>
+              <rect x="10" y="62" width="40" height="6" rx="2" fill="#2e75b6" opacity=".1"/>
+            </svg>
+          </div>
+          <div class="comic-panel">
+            <svg viewBox="0 0 100 80">
+              <rect width="100" height="80" fill="#e8f2fb"/>
+              <circle cx="35" cy="36" r="18" fill="#2e75b6" opacity=".18"/>
+              <circle cx="65" cy="36" r="18" fill="#1a4f8a" opacity=".14"/>
+              <text x="35" y="39" text-anchor="middle" font-size="8" fill="#1a4f8a" font-family="DM Sans,sans-serif" font-weight="600">Prod</text>
+              <text x="65" y="39" text-anchor="middle" font-size="8" fill="#1a4f8a" font-family="DM Sans,sans-serif" font-weight="600">Forn</text>
+              <line x1="50" y1="36" x2="52" y2="36" stroke="#1a4f8a" stroke-width="2"/>
+              <text x="50" y="66" text-anchor="middle" font-size="7" fill="#1a4f8a" font-family="DM Sans,sans-serif">M:N con listino</text>
+            </svg>
+          </div>
+          <div class="comic-panel">
+            <svg viewBox="0 0 100 80">
+              <rect width="100" height="80" fill="#e8f2fb"/>
+              <rect x="12" y="14" width="76" height="50" rx="6" fill="#fff" stroke="#2e75b6" stroke-width="1"/>
+              <text x="50" y="28" text-anchor="middle" font-size="7" fill="#1a4f8a" font-family="DM Sans,sans-serif" font-weight="600">Storico variazioni</text>
+              <rect x="18" y="33" width="64" height="5" rx="2" fill="#b5d4f4"/>
+              <rect x="18" y="41" width="48" height="5" rx="2" fill="#b5d4f4" opacity=".6"/>
+              <rect x="18" y="49" width="56" height="5" rx="2" fill="#b5d4f4" opacity=".4"/>
+              <text x="50" y="70" text-anchor="middle" font-size="6" fill="#6b6b68" font-family="DM Sans,sans-serif">audit trail</text>
+            </svg>
+          </div>
+        </div>
+        <div class="tag-row">
+          <span class="tag" style="color:#1a4f8a;border-color:#2e75b6">Codifica univoca</span>
+          <span class="tag" style="color:#1a4f8a;border-color:#2e75b6">Tassonomia multilivello</span>
+          <span class="tag" style="color:#1a4f8a;border-color:#2e75b6">Import CSV/Excel</span>
+          <span class="tag" style="color:#1a4f8a;border-color:#2e75b6">Scorecard fornitori</span>
+          <span class="tag" style="color:#1a4f8a;border-color:#2e75b6">RDO multipla</span>
+        </div>
+      </div>
+      <div class="detail-section">
+        <h3>Cosa fa questo modulo</h3>
+        <ul class="detail-steps">
+          <li><div class="step-num" style="background:#1a4f8a">1</div><span>Ogni prodotto ha un codice interno, codice fornitore, UdM, categoria, scorta minima e lotto d&rsquo;ordine. Le variazioni anagrafiche sono tracciate con data e utente (audit trail).</span></li>
+          <li><div class="step-num" style="background:#1a4f8a">2</div><span>Un prodotto pu&ograve; essere collegato a pi&ugrave; fornitori, ognuno con il proprio listino e storico prezzi. Il confronto offerte &egrave; automatico.</span></li>
+          <li><div class="step-num" style="background:#1a4f8a">3</div><span>La Richiesta di Offerta (RDO) viene inviata contemporaneamente a N fornitori via e-mail/PEC. Le risposte vengono caricate e confrontate su una tabella comparativa con il miglior prezzo evidenziato.</span></li>
+          <li><div class="step-num" style="background:#1a4f8a">4</div><span>Le variazioni di prezzo (maggiorazioni, sconti, offerte a tempo) vengono registrate con scadenza e generano un alert automatico alla data di fine validit&agrave;.</span></li>
+        </ul>
+        <div class="detail-note" style="background:#e8f2fb;color:#1a4f8a">
+          <strong>Ruoli:</strong> Il PP gestisce tutto il modulo. L&rsquo;AM pu&ograve; configurare le categorie. Il RA vede il catalogo in sola lettura al momento della richiesta.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       PANEL 02 — RICHIESTE
+  ═══════════════════════════════════════════ -->
+  <div class="callout" id="p2">
+    <div class="callout-header">
+      <div class="callout-icon" style="background:#e8f2fb;font-size:20px">&#128203;</div>
+      <div>
+        <div class="callout-title">02 &mdash; Richieste di acquisto</div>
+        <div class="callout-subtitle">Form &middot; Approvazione &middot; Notifiche &middot; Accorpamento</div>
+      </div>
+      <button class="close-btn" onclick="closeAll()">&#x2715;</button>
+    </div>
+    <div class="callout-body">
+      <div class="comic-section">
+        <div class="comic-label">Il flusso passo per passo</div>
+        <div class="comic-strip">
+          <div class="comic-panel">
+            <svg viewBox="0 0 100 80">
+              <rect width="100" height="80" fill="#e0f5ed"/>
+              <rect x="14" y="10" width="72" height="54" rx="6" fill="#fff" stroke="#1db87e" stroke-width="1"/>
+              <text x="50" y="23" text-anchor="middle" font-size="7" fill="#0f7a5a" font-family="DM Sans,sans-serif" font-weight="600">Form richiesta</text>
+              <rect x="20" y="28" width="60" height="6" rx="2" fill="#9fe1cb"/>
+              <rect x="20" y="37" width="44" height="6" rx="2" fill="#9fe1cb" opacity=".7"/>
+              <rect x="20" y="46" width="52" height="6" rx="2" fill="#9fe1cb" opacity=".5"/>
+              <rect x="30" y="55" width="40" height="8" rx="4" fill="#1db87e"/>
+              <text x="50" y="61" text-anchor="middle" font-size="7" fill="#fff" font-family="DM Sans,sans-serif">Invia</text>
+            </svg>
+          </div>
+          <div class="comic-panel">
+            <svg viewBox="0 0 100 80">
+              <rect width="100" height="80" fill="#e0f5ed"/>
+              <circle cx="50" cy="30" r="18" fill="#9fe1cb"/>
+              <text x="50" y="34" text-anchor="middle" font-size="9" fill="#0f7a5a" font-family="DM Sans,sans-serif" font-weight="600">PP</text>
+              <text x="50" y="55" text-anchor="middle" font-size="7" fill="#0f7a5a" font-family="DM Sans,sans-serif">Valuta e accorpa</text>
+              <text x="50" y="65" text-anchor="middle" font-size="7" fill="#0f7a5a" font-family="DM Sans,sans-serif">richieste pendenti</text>
+            </svg>
+          </div>
+          <div class="comic-panel">
+            <svg viewBox="0 0 100 80">
+              <rect width="100" height="80" fill="#e0f5ed"/>
+              <rect x="14" y="18" width="72" height="36" rx="6" fill="#fff" stroke="#1db87e" stroke-width="1.5"/>
+              <text x="50" y="38" text-anchor="middle" font-size="10" fill="#0f7a5a" font-family="DM Sans,sans-serif">&#10003; Approvata</text>
+              <text x="50" y="62" text-anchor="middle" font-size="7" fill="#0f7a5a" font-family="DM Sans,sans-serif">Notifica push al RA</text>
+            </svg>
+          </div>
+        </div>
+        <div class="tag-row">
+          <span class="tag" style="color:#0f7a5a;border-color:#1db87e">Autocompletamento</span>
+          <span class="tag" style="color:#0f7a5a;border-color:#1db87e">Giacenza visibile</span>
+          <span class="tag" style="color:#0f7a5a;border-color:#1db87e">Notifica real-time</span>
+          <span class="tag" style="color:#0f7a5a;border-color:#1db87e">App mobile</span>
+        </div>
+      </div>
+      <div class="detail-section">
+        <h3>Flusso completo</h3>
+        <ul class="detail-steps">
+          <li><div class="step-num" style="background:#0f7a5a">1</div><span>Il RA apre il form (web o app mobile) e cerca il prodotto per codice o nome. Il sistema mostra subito giacenza corrente e consumo medio mensile &mdash; cos&igrave; evita richieste doppie o fuori scala.</span></li>
+          <li><div class="step-num" style="background:#0f7a5a">2</div><span>Se il prodotto non &egrave; in catalogo, la richiesta va in forma libera e genera un sotto-workflow di aggiunta anagrafica prima di procedere.</span></li>
+          <li><div class="step-num" style="background:#0f7a5a">3</div><span>Il PP riceve notifica immediata, valuta ogni riga e pu&ograve; accorpare richieste pendenti verso lo stesso fornitore per ottimizzare l&rsquo;ordine.</span></li>
+          <li><div class="step-num" style="background:#0f7a5a">4</div><span>Stati possibili: Bozza &rarr; Inviata &rarr; In valutazione &rarr; Approvata / Sospesa / Rifiutata. Ogni cambio di stato genera una notifica al RA.</span></li>
+        </ul>
+        <div class="detail-note" style="background:#e0f5ed;color:#0f7a5a">
+          <strong>Modalit&agrave; offline:</strong> L&rsquo;app mobile consente di inviare richieste anche senza connessione; la sincronizzazione avviene automaticamente al ripristino della rete.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       PANEL 03 — ORDINI
+  ═══════════════════════════════════════════ -->
+  <div class="callout" id="p3">
+    <div class="callout-header">
+      <div class="callout-icon" style="background:#f0eeff;font-size:20px">&#128196;</div>
+      <div>
+        <div class="callout-title">03 &mdash; Ordini di acquisto</div>
+        <div class="callout-subtitle">Assemblaggio &middot; PDF &middot; PEC &middot; Tracciabilit&agrave;</div>
+      </div>
+      <button class="close-btn" onclick="closeAll()">&#x2715;</button>
+    </div>
+    <div class="callout-body">
+      <div class="comic-section">
+        <div class="comic-label">Come si genera un ordine</div>
+        <div class="comic-strip">
+          <div class="comic-panel">
+            <svg viewBox="0 0 100 80">
+              <rect width="100" height="80" fill="#f0eeff"/>
+              <rect x="18" y="8" width="64" height="58" rx="5" fill="#fff" stroke="#6a5ad0" stroke-width="1"/>
+              <text x="50" y="20" text-anchor="middle" font-size="6" fill="#4a3ab0" font-family="DM Sans,sans-serif" font-weight="600">Ordine #2024/1287</text>
+              <rect x="24" y="24" width="52" height="5" rx="2" fill="#afa9ec"/>
+              <rect x="24" y="32" width="38" height="4" rx="2" fill="#cecbf6" opacity=".8"/>
+              <rect x="24" y="39" width="44" height="4" rx="2" fill="#cecbf6" opacity=".6"/>
+              <rect x="24" y="46" width="30" height="4" rx="2" fill="#cecbf6" opacity=".4"/>
+              <rect x="24" y="54" width="52" height="9" rx="4" fill="#534ab7"/>
+              <text x="50" y="60" text-anchor="middle" font-size="7" fill="#fff" font-family="DM Sans,sans-serif">Preview PDF</text>
+            </svg>
+          </div>
+          <div class="comic-panel">
+            <svg viewBox="0 0 100 80">
+              <rect width="100" height="80" fill="#f0eeff"/>
+              <rect x="8" y="20" width="38" height="30" rx="5" fill="#fff" stroke="#6a5ad0" stroke-width="1"/>
+              <text x="27" y="38" text-anchor="middle" font-size="6" fill="#4a3ab0" font-family="DM Sans,sans-serif">Ordine</text>
+              <path d="M47 35 L58 35" stroke="#534ab7" stroke-width="2" marker-end="url(#arr)" fill="none"/>
+              <rect x="60" y="20" width="32" height="30" rx="5" fill="#534ab7" opacity=".18"/>
+              <text x="76" y="34" text-anchor="middle" font-size="6" fill="#4a3ab0" font-family="DM Sans,sans-serif" font-weight="600">PEC</text>
+              <text x="76" y="43" text-anchor="middle" font-size="6" fill="#4a3ab0" font-family="DM Sans,sans-serif">e-mail</text>
+              <defs><marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M2 1L8 5L2 9" fill="none" stroke="#534ab7" stroke-width="2"/></marker></defs>
+            </svg>
+          </div>
+          <div class="comic-panel">
+            <svg viewBox="0 0 100 80">
+              <rect width="100" height="80" fill="#f0eeff"/>
+              <rect x="8" y="10" width="84" height="58" rx="5" fill="#fff" stroke="#afa9ec" stroke-width="0.5"/>
+              <text x="50" y="24" text-anchor="middle" font-size="6" fill="#4a3ab0" font-family="DM Sans,sans-serif" font-weight="600">Tracciabilit&#224; interna</text>
+              <rect x="14" y="29" width="72" height="5" rx="2" fill="#cecbf6"/>
+              <rect x="14" y="37" width="54" height="5" rx="2" fill="#cecbf6" opacity=".7"/>
+              <rect x="14" y="45" width="62" height="5" rx="2" fill="#cecbf6" opacity=".5"/>
+              <text x="50" y="66" text-anchor="middle" font-size="6" fill="#6b6b68" font-family="DM Sans,sans-serif">riga &#8594; richiesta &#8594; reparto</text>
+            </svg>
+          </div>
+        </div>
+        <div class="tag-row">
+          <span class="tag" style="color:#4a3ab0;border-color:#6a5ad0">Accorpamento automatico</span>
+          <span class="tag" style="color:#4a3ab0;border-color:#6a5ad0">Log PEC/ricevuta</span>
+          <span class="tag" style="color:#4a3ab0;border-color:#6a5ad0">Alert ritardo DDT</span>
+        </div>
+      </div>
+      <div class="detail-section">
+        <h3>Cosa fa il PP per generare un ordine</h3>
+        <ul class="detail-steps">
+          <li><div class="step-num" style="background:#534ab7">1</div><span>Seleziona le richieste approvate verso lo stesso fornitore. Il sistema genera la bozza ordine automaticamente, raggruppando le righe.</span></li>
+          <li><div class="step-num" style="background:#534ab7">2</div><span>Per ogni riga ordine &egrave; visibile la lista delle richieste originanti con reparto e richiedente &mdash; piena tracciabilit&agrave; interna ed esterna.</span></li>
+          <li><div class="step-num" style="background:#534ab7">3</div><span>Il PP genera il PDF di anteprima, verifica i prezzi vs listino corrente, poi invia via PEC o e-mail senza uscire dall&rsquo;applicazione.</span></li>
+          <li><div class="step-num" style="background:#534ab7">4</div><span>Data/ora di invio e ID ricevuta PEC vengono registrati automaticamente. Un alert scatta se il DDT non arriva entro la data di consegna prevista.</span></li>
+        </ul>
+        <div class="detail-note" style="background:#f0eeff;color:#4a3ab0">
+          <strong>Ordini aperti:</strong> &Egrave; supportata la modalit&agrave; ordine a budget con rilascio parziale delle quantit&agrave; nel tempo, utile per contratti plurimensili con i fornitori.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       PANEL 04 — RICEZIONE & MAGAZZINO
+  ═══════════════════════════════════════════ -->
+  <div class="callout" id="p4">
+    <div class="callout-header">
+      <div class="callout-icon" style="background:#fdf0ee;font-size:20px">&#128230;</div>
+      <div>
+        <div class="callout-title">04 &mdash; Ricezione &amp; magazzino</div>
+        <div class="callout-subtitle">DDT &middot; Lotti &middot; QR &middot; Scorte &middot; Alert</div>
+      </div>
+      <button class="close-btn" onclick="closeAll()">&#x2715;</button>
+    </div>
+    <div class="callout-body">
+      <div class="comic-section">
+        <div class="comic-label">Dal DDT all&rsquo;etichetta</div>
+        <div class="comic-strip">
+          <div class="comic-panel">
+            <svg viewBox="0 0 100 80">
+              <rect width="100" height="80" fill="#fdf0ee"/>
+              <rect x="10" y="12" width="80" height="48" rx="5" fill="#fff" stroke="#d84a30" stroke-width="1"/>
+              <text x="50" y="25" text-anchor="middle" font-size="7" fill="#b03020" font-family="DM Sans,sans-serif" font-weight="600">DDT #1523</text>
+              <rect x="16" y="30" width="68" height="5" rx="2" fill="#f5c4b3"/>
+              <rect x="16" y="38" width="50" height="5" rx="2" fill="#f5c4b3" opacity=".7"/>
+              <rect x="16" y="46" width="58" height="5" rx="2" fill="#f5c4b3" opacity=".5"/>
+              <text x="50" y="68" text-anchor="middle" font-size="6" fill="#b03020" font-family="DM Sans,sans-serif">Riscontro vs ordine</text>
+            </svg>
+          </div>
+          <div class="comic-panel">
+            <svg viewBox="0 0 100 80">
+              <rect width="100" height="80" fill="#fdf0ee"/>
+              <rect x="22" y="10" width="56" height="40" rx="5" fill="#fff" stroke="#d84a30" stroke-width="1"/>
+              <rect x="28" y="16" width="12" height="12" rx="2" fill="#888"/>
+              <rect x="42" y="16" width="12" height="12" rx="2" fill="#888"/>
+              <rect x="28" y="30" width="12" height="12" rx="2" fill="#888"/>
+              <rect x="42" y="30" width="12" height="12" rx="2" fill="#888"/>
+              <text x="50" y="60" text-anchor="middle" font-size="7" fill="#b03020" font-family="DM Sans,sans-serif">QR-code lotto</text>
+              <text x="50" y="70" text-anchor="middle" font-size="6" fill="#6b6b68" font-family="DM Sans,sans-serif">+ scadenza + reparto</text>
+            </svg>
+          </div>
+          <div class="comic-panel">
+            <svg viewBox="0 0 100 80">
+              <rect width="100" height="80" fill="#fdf0ee"/>
+              <rect x="10" y="10" width="80" height="28" rx="5" fill="#fff" stroke="#d84a30" stroke-width="0.5"/>
+              <rect x="16" y="16" width="68" height="8" rx="2" fill="#f0997b" opacity=".5"/>
+              <rect x="16" y="27" width="42" height="6" rx="2" fill="#e24b4a" opacity=".3"/>
+              <text x="61" y="32" text-anchor="middle" font-size="6" fill="#b03020" font-family="DM Sans,sans-serif" font-weight="600">&#9888; soglia</text>
+              <rect x="10" y="45" width="80" height="26" rx="5" fill="#e0f5ed" stroke="#1db87e" stroke-width="0.5"/>
+              <text x="50" y="58" text-anchor="middle" font-size="6" fill="#0f7a5a" font-family="DM Sans,sans-serif" font-weight="600">&#10003; Riordino suggerito</text>
+              <text x="50" y="67" text-anchor="middle" font-size="6" fill="#0f7a5a" font-family="DM Sans,sans-serif">lotto min: 50 pz</text>
+            </svg>
+          </div>
+        </div>
+        <div class="tag-row">
+          <span class="tag" style="color:#b03020;border-color:#d84a30">Scansione QR mobile</span>
+          <span class="tag" style="color:#b03020;border-color:#d84a30">Scarico ad personam</span>
+          <span class="tag" style="color:#b03020;border-color:#d84a30">Giacenze real-time</span>
+          <span class="tag" style="color:#b03020;border-color:#d84a30">Non conformit&agrave;</span>
+        </div>
+      </div>
+      <div class="detail-section">
+        <h3>Dal ricevimento alla tracciabilit&agrave; di lotto</h3>
+        <ul class="detail-steps">
+          <li><div class="step-num" style="background:#b03020">1</div><span>Il RA scansiona il QR dell&rsquo;ordine o lo cerca per numero, poi registra il DDT: numero, data, righe con quantit&agrave; ricevuta. Il sistema confronta automaticamente con l&rsquo;ordine e segnala ogni scostamento.</span></li>
+          <li><div class="step-num" style="background:#b03020">2</div><span>In caso di merce non conforme (quantit&agrave; errata, lotto scaduto, prodotto difforme) si apre una segnalazione con tipo di anomalia. PP e fornitore vengono notificati automaticamente.</span></li>
+          <li><div class="step-num" style="background:#b03020">3</div><span>Il sistema genera l&rsquo;etichetta QR per ogni lotto ricevuto: codice prodotto, lotto fornitore, data scadenza, reparto destinatario. Il RA la stampa e la appone sulle confezioni prima di riporle.</span></li>
+          <li><div class="step-num" style="background:#b03020">4</div><span>Ogni prelievo dal magazzino viene registrato &ldquo;ad personam&rdquo;: operatore, timestamp, quantit&agrave;, reparto. Quando la giacenza scende sotto la soglia minima, parte automaticamente una proposta di riordino che rispetta i lotti minimi del fornitore.</span></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       PANEL 05 — CICLO PASSIVO
+  ═══════════════════════════════════════════ -->
+  <div class="callout" id="p5">
+    <div class="callout-header">
+      <div class="callout-icon" style="background:#fef3dc;font-size:20px">&#129534;</div>
+      <div>
+        <div class="callout-title">05 &mdash; Ciclo passivo</div>
+        <div class="callout-subtitle">Matching Ordine &middot; DDT &middot; Fattura &middot; Export contabile</div>
+      </div>
+      <button class="close-btn" onclick="closeAll()">&#x2715;</button>
+    </div>
+    <div class="callout-body">
+      <div class="comic-section">
+        <div class="comic-label">Tre scenari di matching</div>
+        <div class="scenario-tabs">
+          <button class="tab-btn on" style="background:#0f7a5a" onclick="showTab('p5','t1',this)">&#10003; Match OK</button>
+          <button class="tab-btn" onclick="showTab('p5','t2',this)">&#9888; Scostamento prezzo</button>
+          <button class="tab-btn" onclick="showTab('p5','t3',this)">&#10005; Quantit&agrave; errata</button>
+        </div>
+        <div class="scenario on" id="p5-t1">
+          <div class="scenario-card" style="background:#e0f5ed;color:#0f7a5a">
+            <div class="match-row"><span class="badge ok">MATCH OK</span> Tutti e tre i documenti concordano</div>
+            Ordine #1287: 50 pz &middot; &euro;&nbsp;169/cad &mdash; DDT #1523: 50 pz ricevuti &mdash; Fattura: 50 pz &middot; &euro;&nbsp;169/cad<br><br>
+            Il sistema approva automaticamente e mette la fattura in coda per l&rsquo;export contabile. Nessuna azione manuale richiesta.
+          </div>
+        </div>
+        <div class="scenario" id="p5-t2">
+          <div class="scenario-card" style="background:#fef3dc;color:#b06800">
+            <div class="match-row"><span class="badge warn">ATTENZIONE</span> Prezzo in fattura diverso dall&rsquo;ordine</div>
+            Ordine: &euro;&nbsp;169/pz &mdash; Fattura: &euro;&nbsp;175/pz &mdash; Differenza: +&euro;&nbsp;300 totali<br><br>
+            La fattura viene bloccata. PP e Contabilit&agrave; ricevono una notifica. L&rsquo;export &egrave; sospeso fino alla risoluzione: accettazione dello scostamento (se in tolleranza configurabile) oppure nota di credito dal fornitore.
+          </div>
+        </div>
+        <div class="scenario" id="p5-t3">
+          <div class="scenario-card" style="background:#fdf0ee;color:#b03020">
+            <div class="match-row"><span class="badge err">BLOCCATO</span> Quantit&agrave; DDT diversa dalla fattura</div>
+            DDT attesta 42 pz ricevuti &mdash; Fattura reclama 50 pz &mdash; Mancanti: 8 pz<br><br>
+            Il sistema apre una non conformit&agrave; tracciata, blocca il pagamento e notifica il fornitore. Risoluzione: consegna integrativa dei pezzi mancanti oppure nota di credito parziale.
+          </div>
+        </div>
+        <div class="tag-row">
+          <span class="tag" style="color:#b06800;border-color:#e88c00">FatturaPA/SDI</span>
+          <span class="tag" style="color:#b06800;border-color:#e88c00">Note di credito</span>
+          <span class="tag" style="color:#b06800;border-color:#e88c00">Export CSV/XML/API</span>
+          <span class="tag" style="color:#b06800;border-color:#e88c00">Import stati pagamento</span>
+        </div>
+      </div>
+      <div class="detail-section">
+        <h3>Come funziona il matching a tre vie</h3>
+        <ul class="detail-steps">
+          <li><div class="step-num" style="background:#b06800">1</div><span>La fattura arriva in formato elettronico (XML SDI/FatturaPA) o viene caricata manualmente. Il sistema la abbina all&rsquo;ordine e al DDT gi&agrave; registrati.</span></li>
+          <li><div class="step-num" style="background:#b06800">2</div><span>Il confronto avviene su tre assi: fornitore corretto, quantit&agrave; coerenti tra DDT e fattura, prezzi unitari conformi all&rsquo;ordine. Ogni scostamento viene classificato e segnalato.</span></li>
+          <li><div class="step-num" style="background:#b06800">3</div><span>Le fatture validate vengono esportate verso il gestionale contabile in formato configurabile (CSV, XML o API REST). Il sistema importa a sua volta gli stati di pagamento (pagato, in scadenza, scaduto).</span></li>
+          <li><div class="step-num" style="background:#b06800">4</div><span>Tutte le note di credito e gli storni vengono registrati con abbinamento alla fattura originale, mantenendo la catena documentale completa.</span></li>
+        </ul>
+        <div class="detail-note" style="background:#fef3dc;color:#b06800">
+          <strong>Garanzia:</strong> Nessuna fattura con anomalie pu&ograve; essere esportata o pagata fino alla chiusura della segnalazione.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       PANEL 06 — DISTINTA BASE
+  ═══════════════════════════════════════════ -->
+  <div class="callout" id="p6">
+    <div class="callout-header">
+      <div class="callout-icon" style="background:#e0f5ed;font-size:20px">&#9965;</div>
+      <div>
+        <div class="callout-title">06 &mdash; Distinta base delle prestazioni</div>
+        <div class="callout-subtitle">Prestazione &middot; Consumo teorico &middot; Costo per atto</div>
+      </div>
+      <button class="close-btn" onclick="closeAll()">&#x2715;</button>
+    </div>
+    <div class="callout-body">
+      <div class="comic-section">
+        <div class="comic-label">Come si calcola il costo per atto</div>
+        <div class="comic-strip">
+          <div class="comic-panel">
+            <svg viewBox="0 0 100 80">
+              <rect width="100" height="80" fill="#e0f5ed"/>
+              <rect x="30" y="8" width="40" height="14" rx="5" fill="#1db87e" opacity=".35"/>
+              <text x="50" y="17" text-anchor="middle" font-size="7" fill="#0f7a5a" font-family="DM Sans,sans-serif" font-weight="600">Emocromo</text>
+              <line x1="38" y1="22" x2="26" y2="36" stroke="#0f7a5a" stroke-width="1.2"/>
+              <line x1="62" y1="22" x2="74" y2="36" stroke="#0f7a5a" stroke-width="1.2"/>
+              <rect x="8" y="36" width="36" height="14" rx="3" fill="#9fe1cb" opacity=".8"/>
+              <rect x="56" y="36" width="36" height="14" rx="3" fill="#9fe1cb" opacity=".8"/>
+              <text x="26" y="45" text-anchor="middle" font-size="6" fill="#0f7a5a" font-family="DM Sans,sans-serif">Provette</text>
+              <text x="74" y="45" text-anchor="middle" font-size="6" fill="#0f7a5a" font-family="DM Sans,sans-serif">Reagenti</text>
+              <text x="50" y="65" text-anchor="middle" font-size="6" fill="#0f7a5a" font-family="DM Sans,sans-serif">Distinta base</text>
+              <text x="50" y="73" text-anchor="middle" font-size="6" fill="#6b6b68" font-family="DM Sans,sans-serif">da LIS/RIS</text>
+            </svg>
+          </div>
+          <div class="comic-panel">
+            <svg viewBox="0 0 100 80">
+              <rect width="100" height="80" fill="#e0f5ed"/>
+              <rect x="10" y="12" width="80" height="48" rx="5" fill="#fff" stroke="#1db87e" stroke-width="0.5"/>
+              <text x="50" y="24" text-anchor="middle" font-size="6" fill="#0f7a5a" font-family="DM Sans,sans-serif" font-weight="600">Consumo teorico vs reale</text>
+              <text x="16" y="35" font-size="6" fill="#6b6b68" font-family="DM Sans,sans-serif">Teorico</text>
+              <rect x="16" y="38" width="44" height="6" rx="2" fill="#1db87e" opacity=".5"/>
+              <text x="16" y="51" font-size="6" fill="#6b6b68" font-family="DM Sans,sans-serif">Reale</text>
+              <rect x="16" y="54" width="35" height="6" rx="2" fill="#1db87e" opacity=".9"/>
+            </svg>
+          </div>
+          <div class="comic-panel">
+            <svg viewBox="0 0 100 80">
+              <rect width="100" height="80" fill="#e0f5ed"/>
+              <rect x="16" y="12" width="68" height="50" rx="5" fill="#fff" stroke="#1db87e" stroke-width="0.5"/>
+              <text x="50" y="26" text-anchor="middle" font-size="6" fill="#0f7a5a" font-family="DM Sans,sans-serif" font-weight="600">Costo pieno per atto</text>
+              <text x="50" y="40" text-anchor="middle" font-size="14" fill="#0f7a5a" font-family="DM Serif Display,serif">&euro; 0,46</text>
+              <text x="50" y="52" text-anchor="middle" font-size="5" fill="#6b6b68" font-family="DM Sans,sans-serif">materiale + generali</text>
+            </svg>
+          </div>
+        </div>
+        <div class="tag-row">
+          <span class="tag" style="color:#0f7a5a;border-color:#1db87e">Integrazione LIS/RIS</span>
+          <span class="tag" style="color:#0f7a5a;border-color:#1db87e">Prezzo medio ponderato</span>
+          <span class="tag" style="color:#0f7a5a;border-color:#1db87e">Simulazione costi</span>
+          <span class="tag" style="color:#0f7a5a;border-color:#1db87e">Ribaltamento generali</span>
+        </div>
+      </div>
+      <div class="detail-section">
+        <h3>Perch&eacute; &egrave; strategico</h3>
+        <ul class="detail-steps">
+          <li><div class="step-num" style="background:#0f7a5a">1</div><span>Per ogni prestazione del catalogo LIS o RIS (es. Emocromo completo, TAC torace) si definisce la Distinta Base: lista dei prodotti necessari con quantit&agrave; e unit&agrave; di misura.</span></li>
+          <li><div class="step-num" style="background:#0f7a5a">2</div><span>Il sistema legge in automatico i volumi di produzione da LIS e RIS (prestazioni eseguite per periodo) e calcola il consumo teorico atteso, confrontandolo col consumo reale registrato in magazzino.</span></li>
+          <li><div class="step-num" style="background:#0f7a5a">3</div><span>Il costo materiale per atto viene calcolato usando il Prezzo Medio Ponderato di acquisto. Ai costi materiali si aggiungono i costi generali di struttura, configurabili come percentuale o importo fisso per prestazione o reparto.</span></li>
+          <li><div class="step-num" style="background:#0f7a5a">4</div><span>Il modulo di simulazione permette di rispondere a domande come: &ldquo;Se il prezzo del Reagente X aumenta del 10%, come cambia il costo del nostro Emocromo?&rdquo;</span></li>
+        </ul>
+        <div class="detail-note" style="background:#e0f5ed;color:#0f7a5a">
+          <strong>Scostamento ammissibile:</strong> La deviazione tra consumo teorico e reale deve restare sotto lo 0,5% &mdash; soglia configurabile che scatta un alert automatico se superata.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       PANEL 07 — DASHBOARD & BI
+  ═══════════════════════════════════════════ -->
+  <div class="callout" id="p7">
+    <div class="callout-header">
+      <div class="callout-icon" style="background:#e8f2fb;font-size:20px">&#128202;</div>
+      <div>
+        <div class="callout-title">07 &mdash; Dashboard &amp; Business Intelligence</div>
+        <div class="callout-subtitle">KPI real-time &middot; Alert &middot; Drill-down &middot; Export</div>
+      </div>
+      <button class="close-btn" onclick="closeAll()">&#x2715;</button>
+    </div>
+    <div class="callout-body">
+      <div class="comic-section">
+        <div class="comic-label">Aree del pannello di controllo</div>
+        <div class="comic-strip">
+          <div class="comic-panel">
+            <svg viewBox="0 0 100 80">
+              <rect width="100" height="80" fill="#e8f2fb"/>
+              <rect x="8" y="8" width="38" height="22" rx="4" fill="#fff" stroke="#2e75b6" stroke-width="0.5"/>
+              <text x="27" y="21" text-anchor="middle" font-size="8" fill="#1a4f8a" font-family="DM Serif Display,serif">&euro;125k</text>
+              <text x="27" y="28" text-anchor="middle" font-size="5" fill="#6b6b68" font-family="DM Sans,sans-serif">Spesa mese</text>
+              <rect x="54" y="8" width="38" height="22" rx="4" fill="#fff" stroke="#e24b4a" stroke-width="0.5"/>
+              <text x="73" y="21" text-anchor="middle" font-size="8" fill="#b03020" font-family="DM Serif Display,serif">3</text>
+              <text x="73" y="28" text-anchor="middle" font-size="5" fill="#6b6b68" font-family="DM Sans,sans-serif">Alert scorte</text>
+              <rect x="8" y="36" width="84" height="32" rx="4" fill="#fff" stroke="#b5d4f4" stroke-width="0.5"/>
+              <rect x="14" y="54" width="8" height="8" rx="1" fill="#2e75b6" opacity=".4"/>
+              <rect x="26" y="48" width="8" height="14" rx="1" fill="#2e75b6" opacity=".6"/>
+              <rect x="38" y="42" width="8" height="20" rx="1" fill="#2e75b6" opacity=".8"/>
+              <rect x="50" y="44" width="8" height="18" rx="1" fill="#2e75b6"/>
+              <rect x="62" y="50" width="8" height="12" rx="1" fill="#2e75b6" opacity=".7"/>
+              <rect x="74" y="46" width="8" height="16" rx="1" fill="#2e75b6" opacity=".5"/>
+            </svg>
+          </div>
+          <div class="comic-panel">
+            <svg viewBox="0 0 100 80">
+              <rect width="100" height="80" fill="#e8f2fb"/>
+              <circle cx="50" cy="36" r="22" fill="none" stroke="#b5d4f4" stroke-width="9"/>
+              <circle cx="50" cy="36" r="22" fill="none" stroke="#2e75b6" stroke-width="9" stroke-dasharray="70 69" stroke-linecap="round" transform="rotate(-90 50 36)"/>
+              <text x="50" y="40" text-anchor="middle" font-size="9" fill="#1a4f8a" font-family="DM Serif Display,serif">45%</text>
+              <text x="50" y="68" text-anchor="middle" font-size="6" fill="#6b6b68" font-family="DM Sans,sans-serif">Reagenti su spesa tot.</text>
+            </svg>
+          </div>
+          <div class="comic-panel">
+            <svg viewBox="0 0 100 80">
+              <rect width="100" height="80" fill="#e8f2fb"/>
+              <rect x="8" y="8" width="84" height="22" rx="4" fill="#fdf0ee" stroke="#d84a30" stroke-width="0.5"/>
+              <text x="50" y="19" text-anchor="middle" font-size="6" fill="#b03020" font-family="DM Sans,sans-serif" font-weight="600">&#9888; Scorta minima raggiunta</text>
+              <text x="50" y="26" text-anchor="middle" font-size="5" fill="#b03020" font-family="DM Sans,sans-serif">Reagente X &mdash; 3 unit&agrave;</text>
+              <rect x="8" y="36" width="84" height="22" rx="4" fill="#e0f5ed" stroke="#1db87e" stroke-width="0.5"/>
+              <text x="50" y="47" text-anchor="middle" font-size="6" fill="#0f7a5a" font-family="DM Sans,sans-serif" font-weight="600">&#10003; Riordino suggerito: 50 pz</text>
+              <text x="50" y="55" text-anchor="middle" font-size="5" fill="#0f7a5a" font-family="DM Sans,sans-serif">Conferma con 1 click</text>
+              <text x="50" y="70" text-anchor="middle" font-size="6" fill="#6b6b68" font-family="DM Sans,sans-serif">Alert + azione integrata</text>
+            </svg>
+          </div>
+        </div>
+        <div class="tag-row">
+          <span class="tag" style="color:#1a4f8a;border-color:#2e75b6">Configurabile per ruolo</span>
+          <span class="tag" style="color:#1a4f8a;border-color:#2e75b6">Drill-down interattivo</span>
+          <span class="tag" style="color:#1a4f8a;border-color:#2e75b6">Export CSV/Excel/PDF</span>
+          <span class="tag" style="color:#1a4f8a;border-color:#2e75b6">Widget drag&amp;drop</span>
+        </div>
+      </div>
+      <div class="detail-section">
+        <h3>Le 7 aree di monitoraggio</h3>
+        <ul class="detail-steps">
+          <li><div class="step-num" style="background:#1a4f8a">&#9654;</div><span><strong>Flusso richieste:</strong> richieste aperte, in approvazione, approvate, rifiutate. Aging medio per reparto.</span></li>
+          <li><div class="step-num" style="background:#1a4f8a">&#9654;</div><span><strong>Flusso ordini:</strong> ordini aperti, in attesa DDT, completati. Valore totale ordinato per periodo e fornitore.</span></li>
+          <li><div class="step-num" style="background:#1a4f8a">&#9654;</div><span><strong>Magazzino:</strong> giacenze correnti, prodotti sotto soglia, prossime scadenze lotti.</span></li>
+          <li><div class="step-num" style="background:#1a4f8a">&#9654;</div><span><strong>Ciclo passivo:</strong> fatture da abbinare, scostamenti rilevati, stati di pagamento.</span></li>
+          <li><div class="step-num" style="background:#1a4f8a">&#9654;</div><span><strong>Costi per prestazione:</strong> trend costo medio per categoria, scostamento teorico/reale dalla Distinta Base.</span></li>
+          <li><div class="step-num" style="background:#1a4f8a">&#9654;</div><span><strong>Fornitori:</strong> scorecard puntualit&agrave;, non conformit&agrave; aperte, ritardi consegna.</span></li>
+          <li><div class="step-num" style="background:#1a4f8a">&#9654;</div><span><strong>Distinta Base:</strong> copertura DB (% prestazioni con DB definita), alert DB mancante.</span></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       PANEL 08 — AI / DEEP RESEARCH
+  ═══════════════════════════════════════════ -->
+  <div class="callout" id="p8">
+    <div class="callout-header">
+      <div class="callout-icon" style="background:#f0eeff;font-size:20px">&#129504;</div>
+      <div>
+        <div class="callout-title">08 &mdash; AI / Deep Research</div>
+        <div class="callout-subtitle">NL Query &middot; SQL generativo &middot; RAG &middot; Report multistep</div>
+      </div>
+      <button class="close-btn" onclick="closeAll()">&#x2715;</button>
+    </div>
+    <div class="callout-body">
+      <div class="comic-section">
+        <div class="comic-label">Due modalit&agrave; di analisi</div>
+        <div class="scenario-tabs">
+          <button class="tab-btn on" style="background:#534ab7" onclick="showTab('p8','a1',this)">NL Query</button>
+          <button class="tab-btn" onclick="showTab('p8','a2',this)">Deep Research</button>
+        </div>
+        <div class="scenario on" id="p8-a1">
+          <div class="comic-strip">
+            <div class="comic-panel">
+              <svg viewBox="0 0 100 80">
+                <rect width="100" height="80" fill="#f0eeff"/>
+                <rect x="8" y="10" width="84" height="20" rx="8" fill="#fff" stroke="#afa9ec" stroke-width="1"/>
+                <text x="18" y="23" font-size="6" fill="#534ab7" font-family="DM Sans,sans-serif">Costo reagenti Q1 2025?</text>
+                <rect x="80" y="13" width="8" height="14" rx="4" fill="#534ab7"/>
+                <text x="84" y="22" text-anchor="middle" font-size="8" fill="#fff" font-family="DM Sans,sans-serif">&#10148;</text>
+                <rect x="8" y="38" width="84" height="32" rx="5" fill="#cecbf6" opacity=".3"/>
+                <text x="50" y="52" text-anchor="middle" font-size="5" fill="#3c3489" font-family="DM Sans,sans-serif" font-weight="600">SELECT SUM(prezzo) FROM acquisti</text>
+                <text x="50" y="62" text-anchor="middle" font-size="5" fill="#3c3489" font-family="DM Sans,sans-serif">WHERE categoria='Reagenti' AND Q=1</text>
+              </svg>
+            </div>
+            <div class="comic-panel">
+              <svg viewBox="0 0 100 80">
+                <rect width="100" height="80" fill="#f0eeff"/>
+                <text x="50" y="20" text-anchor="middle" font-size="7" fill="#4a3ab0" font-family="DM Sans,sans-serif" font-weight="600">Risultato</text>
+                <text x="50" y="36" text-anchor="middle" font-size="13" fill="#534ab7" font-family="DM Serif Display,serif">&euro; 38.420</text>
+                <rect x="10" y="44" width="80" height="22" rx="4" fill="#fff" stroke="#afa9ec" stroke-width="0.5"/>
+                <rect x="16" y="50" width="20" height="10" rx="2" fill="#2e75b6" opacity=".5"/>
+                <rect x="40" y="48" width="20" height="12" rx="2" fill="#2e75b6" opacity=".75"/>
+                <rect x="64" y="44" width="20" height="16" rx="2" fill="#2e75b6"/>
+              </svg>
+            </div>
+            <div class="comic-panel">
+              <svg viewBox="0 0 100 80">
+                <rect width="100" height="80" fill="#f0eeff"/>
+                <text x="50" y="18" text-anchor="middle" font-size="6" fill="#4a3ab0" font-family="DM Sans,sans-serif" font-weight="600">Mostra SQL</text>
+                <rect x="8" y="22" width="84" height="30" rx="4" fill="#2a2a28" opacity=".85"/>
+                <text x="16" y="33" font-size="5" fill="#9fe1cb" font-family="DM Mono,monospace">SELECT SUM(p.prezzo*r.qty)</text>
+                <text x="16" y="41" font-size="5" fill="#9fe1cb" font-family="DM Mono,monospace">FROM riga_ordine r</text>
+                <text x="16" y="49" font-size="5" fill="#afa9ec" font-family="DM Mono,monospace">JOIN prodotto p ON ...</text>
+                <text x="50" y="66" text-anchor="middle" font-size="6" fill="#6b6b68" font-family="DM Sans,sans-serif">Trasparenza totale</text>
+              </svg>
+            </div>
+          </div>
+          <div class="detail-note" style="background:#f0eeff;color:#4a3ab0;margin-top:8px">
+            La NL Query traduce domande in linguaggio naturale in SQL, esegue la query sul Data Warehouse e restituisce la risposta come testo, tabella o grafico &mdash; a scelta dell&rsquo;utente.
+          </div>
+        </div>
+        <div class="scenario" id="p8-a2">
+          <div class="comic-strip">
+            <div class="comic-panel">
+              <svg viewBox="0 0 100 80">
+                <rect width="100" height="80" fill="#f0eeff"/>
+                <rect x="8" y="8" width="84" height="30" rx="5" fill="#fff" stroke="#afa9ec" stroke-width="0.5"/>
+                <text x="50" y="20" text-anchor="middle" font-size="6" fill="#4a3ab0" font-family="DM Sans,sans-serif" font-weight="600">Incarico di ricerca</text>
+                <text x="50" y="30" text-anchor="middle" font-size="5" fill="#6b6b68" font-family="DM Sans,sans-serif">Analizza costi reagenti</text>
+                <text x="50" y="37" text-anchor="middle" font-size="5" fill="#6b6b68" font-family="DM Sans,sans-serif">ultimi 24 mesi vs volumi</text>
+                <rect x="8" y="44" width="84" height="28" rx="4" fill="#cecbf6" opacity=".3"/>
+                <text x="50" y="55" text-anchor="middle" font-size="6" fill="#4a3ab0" font-family="DM Sans,sans-serif" font-weight="600">Piano di ricerca</text>
+                <rect x="14" y="59" width="72" height="4" rx="2" fill="#afa9ec" opacity=".7"/>
+                <rect x="14" y="65" width="52" height="4" rx="2" fill="#afa9ec" opacity=".5"/>
+              </svg>
+            </div>
+            <div class="comic-panel">
+              <svg viewBox="0 0 100 80">
+                <rect width="100" height="80" fill="#f0eeff"/>
+                <text x="50" y="16" text-anchor="middle" font-size="6" fill="#4a3ab0" font-family="DM Sans,sans-serif" font-weight="600">Log in tempo reale</text>
+                <rect x="8" y="20" width="84" height="6" rx="2" fill="#e0f5ed"/>
+                <text x="14" y="26" font-size="5" fill="#0f7a5a" font-family="DM Sans,sans-serif">&#10003; Step 1: schema analizzato</text>
+                <rect x="8" y="29" width="84" height="6" rx="2" fill="#e0f5ed"/>
+                <text x="14" y="35" font-size="5" fill="#0f7a5a" font-family="DM Sans,sans-serif">&#10003; Step 2: query costi eseguita</text>
+                <rect x="8" y="38" width="84" height="6" rx="2" fill="#fef3dc"/>
+                <text x="14" y="44" font-size="5" fill="#b06800" font-family="DM Sans,sans-serif">&#9655; Step 3: correlazione volumi...</text>
+                <rect x="8" y="52" width="84" height="20" rx="3" fill="#cecbf6" opacity=".3"/>
+                <text x="50" y="65" text-anchor="middle" font-size="6" fill="#4a3ab0" font-family="DM Sans,sans-serif">Query multiple sequenziali</text>
+              </svg>
+            </div>
+            <div class="comic-panel">
+              <svg viewBox="0 0 100 80">
+                <rect width="100" height="80" fill="#f0eeff"/>
+                <rect x="8" y="8" width="84" height="52" rx="5" fill="#fff" stroke="#afa9ec" stroke-width="0.5"/>
+                <text x="50" y="20" text-anchor="middle" font-size="6" fill="#4a3ab0" font-family="DM Sans,sans-serif" font-weight="600">Report finale</text>
+                <rect x="14" y="24" width="72" height="3" rx="1" fill="#afa9ec" opacity=".6"/>
+                <rect x="14" y="30" width="56" height="3" rx="1" fill="#afa9ec" opacity=".4"/>
+                <rect x="14" y="36" width="48" height="12" rx="2" fill="#cecbf6" opacity=".4"/>
+                <rect x="14" y="52" width="40" height="6" rx="3" fill="#534ab7"/>
+                <text x="34" y="57" text-anchor="middle" font-size="5" fill="#fff" font-family="DM Sans,sans-serif">Scarica PDF</text>
+                <text x="50" y="72" text-anchor="middle" font-size="6" fill="#6b6b68" font-family="DM Sans,sans-serif">Scaricabile PDF / Word</text>
+              </svg>
+            </div>
+          </div>
+          <div class="detail-note" style="background:#f0eeff;color:#4a3ab0;margin-top:8px">
+            Deep Research non &egrave; una chat: &egrave; un flusso guidato di ricerca strutturata che ragiona sullo schema del DW, pianifica i passi, interroga il database pi&ugrave; volte e produce un report strutturato con sintesi, grafici e raccomandazioni.
+          </div>
+        </div>
+        <div class="tag-row">
+          <span class="tag" style="color:#4a3ab0;border-color:#6a5ad0">RAG su documenti interni</span>
+          <span class="tag" style="color:#4a3ab0;border-color:#6a5ad0">Scelta modello AI</span>
+          <span class="tag" style="color:#4a3ab0;border-color:#6a5ad0">Storico sessioni</span>
+          <span class="tag" style="color:#4a3ab0;border-color:#6a5ad0">On-premise</span>
+        </div>
+      </div>
+      <div class="detail-section">
+        <h3>Differenza tra NL Query e Deep Research</h3>
+        <ul class="detail-steps">
+          <li><div class="step-num" style="background:#534ab7">NL</div><span><strong>NL Query</strong> &egrave; per domande singole e veloci. Digiti in italiano, ricevi risposta in pochi secondi con eventuale grafico. Ideale per controlli rapidi durante il lavoro quotidiano.</span></li>
+          <li><div class="step-num" style="background:#534ab7">DR</div><span><strong>Deep Research</strong> &egrave; per analisi complesse. Imposti un incarico articolato, il sistema pianifica da solo le query necessarie, le esegue in sequenza mostrando un log real-time, poi genera un report completo scaricabile in PDF o Word.</span></li>
+          <li><div class="step-num" style="background:#534ab7">RAG</div><span><strong>RAG</strong> arricchisce entrambe le modalit&agrave; con il contenuto di documenti interni indicizzati: offerte, contratti, specifiche tecniche, capitolati. Le risposte possono cos&igrave; citare il contratto di fornitura in vigore.</span></li>
+        </ul>
+        <div class="detail-note" style="background:#f0eeff;color:#4a3ab0">
+          <strong>Privacy:</strong> Il modello AI rimane on-premise o con contratto di data-residency EU. Nessun dato del centro &egrave; inviato a cloud pubblici.
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /infografica-wrap -->
+
+<script>
+var activePanel = null;
+
+function openPanel(id) {
+  if (activePanel === id) { closeAll(); return; }
+  closeAll();
+  document.getElementById(id).classList.add('open');
+  document.querySelectorAll('.hotspot').forEach(function(h) { h.classList.remove('active'); });
+  var num = id.replace('p','');
+  var hs = document.getElementById('h' + num);
+  if (hs) hs.classList.add('active');
+  activePanel = id;
+  setTimeout(function() {
+    document.getElementById(id).scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }, 60);
+}
+
+function closeAll() {
+  document.querySelectorAll('.callout').forEach(function(c) { c.classList.remove('open'); });
+  document.querySelectorAll('.hotspot').forEach(function(h) { h.classList.remove('active'); });
+  activePanel = null;
+}
+
+function showTab(panel, tabId, btn) {
+  var prefix = panel + '-';
+  document.querySelectorAll('#' + panel + ' .scenario').forEach(function(s) { s.classList.remove('on'); });
+  document.getElementById(prefix + tabId.replace(panel+'-','')).classList.add('on');
+  var color = btn.style.background || '#534ab7';
+  btn.closest('.scenario-tabs').querySelectorAll('.tab-btn').forEach(function(b) {
+    b.classList.remove('on');
+    b.style.background = '';
+  });
+  btn.classList.add('on');
+}
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closeAll();
+});
+</script>
+</body>
+</html>
